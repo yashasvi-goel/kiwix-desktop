@@ -159,7 +159,7 @@ void KiwixApp::printPage()
     printDialog.setStyle(nullptr);
     printDialog.setStyleSheet("");
     if (printDialog.exec() == QDialog::Accepted) {
-        auto webview = mp_tabWidget->currentWidget();
+        auto webview = mp_tabWidget->currentWebView();
         if(!webview)
             return;
         webview->page()->print(printer, [=](bool success) {
@@ -183,8 +183,6 @@ void KiwixApp::setSideBar(KiwixApp::SideBarType type)
 {
     auto sideDockWidget = mp_mainWindow->getSideDockWidget();
     switch(type) {
-        case SEARCH_BAR:
-            mp_mainWindow->findChild<TocSideBar*>("tocsidebar")->getFindLineEdit()->setFocus();
         case CONTENTMANAGER_BAR:
         case READINGLIST_BAR:
             sideDockWidget->setCurrentIndex(type);
@@ -316,9 +314,9 @@ void KiwixApp::createAction()
     HIDE_ACTION(SearchLibraryAction);
 
     CREATE_ACTION(FindInPageAction, tr("Find in page"));
-    SET_SHORTCUT(FindInPageAction, QKeySequence::Find);
+    mpa_actions[FindInPageAction]->setShortcuts({QKeySequence::Find, Qt::Key_F3});
     connect(mpa_actions[FindInPageAction], &QAction::triggered,
-            this, [=]() { toggleSideBar(SEARCH_BAR); });
+            this, [=]() { mp_tabWidget->openFindInPageBar(); });
 
     CREATE_ACTION_ICON(ToggleFullscreenAction, "full-screen-enter", tr("Set fullScreen"));
     SET_SHORTCUT(ToggleFullscreenAction, QKeySequence::FullScreen);

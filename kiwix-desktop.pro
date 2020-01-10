@@ -45,6 +45,7 @@ DEFINES += QT_DEPRECATED_WARNINGS
 
 
 SOURCES += \
+    src/findinpagebar.cpp \
     src/main.cpp \
     src/mainwindow.cpp \
     src/kiwixapp.cpp \
@@ -59,7 +60,6 @@ SOURCES += \
     src/mainmenu.cpp \
     src/webpage.cpp \
     src/about.cpp \
-    src/tocsidebar.cpp \
     src/contentmanager.cpp \
     src/contentmanagerview.cpp \
     src/tabbar.cpp \
@@ -69,9 +69,11 @@ SOURCES += \
     src/opdsrequestmanager.cpp \
     src/localkiwixserver.cpp \
     src/fullscreenwindow.cpp \
-    src/fullscreennotification.cpp
+    src/fullscreennotification.cpp \
+    src/zimview.cpp
 
 HEADERS += \
+    src/findinpagebar.h \
     src/mainwindow.h \
     src/kiwixapp.h \
     src/blobbuffer.h \
@@ -86,7 +88,6 @@ HEADERS += \
     src/mainmenu.h \
     src/webpage.h \
     src/about.h \
-    src/tocsidebar.h \
     src/contentmanager.h \
     src/contentmanagerview.h \
     src/tabbar.h \
@@ -97,12 +98,13 @@ HEADERS += \
     src/localkiwixserver.h \
     src/fullscreenwindow.h \
     src/fullscreennotification.h \
-    src/menuproxystyle.h
+    src/menuproxystyle.h \
+    src/zimview.h
 
 FORMS += \
+    src/findinpagebar.ui \
     ui/mainwindow.ui \
     ui/about.ui \
-    src/tocsidebar.ui \
     src/contentmanagerside.ui \
     src/readinglistbar.ui \
     ui/localkiwixserver.ui

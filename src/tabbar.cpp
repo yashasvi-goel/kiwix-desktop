@@ -26,9 +26,9 @@ TabBar::TabBar(QWidget *parent) :
     connect(app->getAction(KiwixApp::NewTabAction), &QAction::triggered,
             this, [=]() {
                 auto current = this->currentWidget();
-                auto widget = this->createNewTab(true);
+                auto widget = this->createNewTab(true)->getWebView();
                 QUITIFNULL(current);
-                KiwixApp::instance()->getMainWindow()->getTopWidget()->getSearchBar().setFocus(Qt::MouseFocusReason);
+                app->getMainWindow()->getTopWidget()->getSearchBar().setFocus(Qt::MouseFocusReason);
           });
     connect(app->getAction(KiwixApp::CloseTabAction), &QAction::triggered,
             this, [=]() {
@@ -38,40 +38,9 @@ TabBar::TabBar(QWidget *parent) :
                 }
                 this->closeTab(index);
             });
-    connect(app->getAction(KiwixApp::ZoomInAction), &QAction::triggered,
-            this, [=]() {
-                auto current = this->currentWidget();
-                QUITIFNULL(current);
-                auto zoomFactor = current->zoomFactor();
-                zoomFactor += 0.1;
-                zoomFactor = max(min(zoomFactor, 5.0), 0.25);
-                current->setZoomFactor(zoomFactor);
-                auto key = this->currentZimId() + "/zoomFactor";
-                KiwixApp::instance()->getSettingsManager()->setSettings(key, zoomFactor);
-            });
-    connect(app->getAction(KiwixApp::ZoomOutAction), &QAction::triggered,
-            this, [=]() {
-                auto current = this->currentWidget();
-                QUITIFNULL(current);
-                auto zoomFactor = current->zoomFactor();
-                zoomFactor -= 0.1;
-                zoomFactor = max(min(zoomFactor, 5.0), 0.25);
-                current->setZoomFactor(zoomFactor);
-                auto key = this->currentZimId() + "/zoomFactor";
-                KiwixApp::instance()->getSettingsManager()->setSettings(key, zoomFactor);
-            });
-    connect(app->getAction(KiwixApp::ZoomResetAction), &QAction::triggered,
-            this, [=]() {
-                auto current = this->currentWidget();
-                QUITIFNULL(current);
-                auto settingsManager = KiwixApp::instance()->getSettingsManager();
-                current->setZoomFactor(settingsManager->getZoomFactor());
-                auto key = this->currentZimId() + "/zoomFactor";
-                settingsManager->deleteSettings(key);
-            });
     connect(app->getAction(KiwixApp::OpenHomePageAction), &QAction::triggered,
             this, [=]() {
-                auto current = this->currentWidget();
+                auto current = this->currentWebView();
                 QUITIFNULL(current);
                 current->setUrl("zim://" + current->zimId() + ".zim/");
             });
@@ -81,11 +50,11 @@ TabBar::TabBar(QWidget *parent) :
                     return;
                 }
                 auto index = currentIndex() + 1;
+                m_settingsIndex = index;
                 auto view = KiwixApp::instance()->getSettingsManager()->getView();
                 mp_stackedWidget->insertWidget(index, view);
                 insertTab(index,QIcon(":/icons/settings.svg"), tr("Settings"));
                 setCurrentIndex(index);
-                m_settingsIndex = index;
             });
 }
 
@@ -117,51 +86,11 @@ void TabBar::setNewTabButton()
     setTabButton(1, QTabBar::RightSide, 0);
 }
 
-WebView* TabBar::createNewTab(bool setCurrent)
+ZimView* TabBar::createNewTab(bool setCurrent)
 {
-    WebView* webView = new WebView();
-    connect(webView->page(), &QWebEnginePage::fullScreenRequested, this, &TabBar::fullScreenRequested);
-    connect(webView, &WebView::titleChanged, this,
-            [=](const QString& str) {
-        setTitleOf(str, webView);
-        QUITIFNOTCURRENT(webView);
-        emit currentTitleChanged(str);
-    });
-    connect(webView, &WebView::iconChanged, this,
-            [=](const QIcon& icon) { setIconOf(icon, webView);  });
-    connect(webView, &WebView::zimIdChanged, this,
-            [=](const QString& zimId) {
-                QUITIFNOTCURRENT(webView);
-                emit currentZimIdChanged(zimId);
-            });
-    connect(webView->page()->action(QWebEnginePage::Back), &QAction::changed,
-            [=]() {
-                QUITIFNOTCURRENT(webView);
-                emit webActionEnabledChanged(QWebEnginePage::Back, webView->isWebActionEnabled(QWebEnginePage::Back));
-            });
-    connect(webView->page()->action(QWebEnginePage::Forward), &QAction::changed,
-            [=]() {
-                QUITIFNOTCURRENT(webView);
-                emit webActionEnabledChanged(QWebEnginePage::Forward, webView->isWebActionEnabled(QWebEnginePage::Forward));
-            });
-    connect(webView->page(), &QWebEnginePage::linkHovered, this,
-            [=](const QString& url) {
-                auto tabbar = KiwixApp::instance()->getTabWidget();
-                if (url.isEmpty()) {
-                    QToolTip::hideText();
-                } else {
-                    auto link = url;
-                    if (url.startsWith("zim://")) {
-                        link = QUrl(url).path();
-                    }
-                    auto height = tabbar->currentWidget()->height() + 1;
-                    auto pos = tabbar->mapToGlobal(QPoint(-3, height));
-                    QToolTip::showText(pos, link);
-                }
-            });
-    // Ownership of webview is passed to the tabWidget
+    auto tab = new ZimView(this, this);
     auto index = count() - 1;
-    mp_stackedWidget->insertWidget(index, webView);
+    mp_stackedWidget->insertWidget(index, tab);
     insertTab(index, "");
     QToolButton *tb = new QToolButton(this);
     tb->setDefaultAction(KiwixApp::instance()->getAction(KiwixApp::CloseTabAction));
@@ -169,55 +98,55 @@ WebView* TabBar::createNewTab(bool setCurrent)
     if (setCurrent) {
         setCurrentIndex(index);
     }
-    return webView;
+    return tab;
 }
 
 void TabBar::openUrl(const QUrl& url, bool newTab)
 {
-    WebView* webView = currentWidget();
+    WebView* webView = currentWebView();
     if (newTab || !webView) {
-        webView = createNewTab(true);
+        webView = createNewTab(true)->getWebView();
     }
     QUITIFNULL(webView);
     webView->setUrl(url);
 }
 
-void TabBar::setTitleOf(const QString& title, WebView* webView)
+void TabBar::setTitleOf(const QString& title, ZimView* tab)
 {
-    CURRENTIFNULL(webView);
+    CURRENTIFNULL(tab);
     if (title.startsWith("zim://")) {
         auto url = QUrl(title);
-        setTabText(mp_stackedWidget->indexOf(webView), url.path());
+        setTabText(mp_stackedWidget->indexOf(tab), url.path());
     } else {
-        setTabText(mp_stackedWidget->indexOf(webView), title);
+        setTabText(mp_stackedWidget->indexOf(tab), title);
     }
 }
 
-void TabBar::setIconOf(const QIcon &icon, WebView *webView)
+void TabBar::setIconOf(const QIcon &icon, ZimView *tab)
 {
-    CURRENTIFNULL(webView);
-    setTabIcon(mp_stackedWidget->indexOf(webView), icon);
+    CURRENTIFNULL(tab);
+    setTabIcon(mp_stackedWidget->indexOf(tab), icon);
 }
 
 QString TabBar::currentZimId()
 {
     if (!currentWidget())
         return "";
-    return currentWidget()->zimId();
+    return currentWebView()->zimId();
 }
 
 QString TabBar::currentArticleUrl()
 {
     if(!currentWidget())
         return "";
-    return currentWidget()->url().path();
+    return currentWebView()->url().path();
 }
 
 QString TabBar::currentArticleTitle()
 {
     if(!currentWidget())
         return "";
-    return currentWidget()->title();
+    return currentWebView()->title();
 }
 
 QSize TabBar::tabSizeHint(int index) const {
@@ -226,12 +155,17 @@ QSize TabBar::tabSizeHint(int index) const {
     return QSize(40, 40);
 }
 
-void TabBar::triggerWebPageAction(QWebEnginePage::WebAction action, WebView *webView)
+void TabBar::openFindInPageBar()
 {
-    CURRENTIFNULL(webView);
-    QUITIFNULL(webView);
-    webView->triggerPageAction(action);
-    webView->setFocus();
+    currentWidget()->openFindInPageBar();    
+}
+
+void TabBar::triggerWebPageAction(QWebEnginePage::WebAction action, ZimView *widget)
+{
+    CURRENTIFNULL(widget);
+    QUITIFNULL(widget);
+    widget->getWebView()->triggerPageAction(action);
+    widget->getWebView()->setFocus();
 }
 
 void TabBar::closeTab(int index)
@@ -273,7 +207,7 @@ void TabBar::onCurrentChanged(int index)
         KiwixApp::instance()->setSideBar(KiwixApp::NONE);
         QTimer::singleShot(0, [=](){emit currentTitleChanged("");});
     } else if (index) {
-        auto view = widget(index);
+        auto view = widget(index)->getWebView();
         emit webActionEnabledChanged(QWebEnginePage::Back, view->isWebActionEnabled(QWebEnginePage::Back));
         emit webActionEnabledChanged(QWebEnginePage::Forward, view->isWebActionEnabled(QWebEnginePage::Forward));
         emit libraryPageDisplayed(false);
@@ -296,7 +230,7 @@ void TabBar::fullScreenRequested(QWebEngineFullScreenRequest request)
         if (m_fullScreenWindow)
             return;
         request.accept();
-        m_fullScreenWindow.reset(new FullScreenWindow(this->currentWidget()));
+        m_fullScreenWindow.reset(new FullScreenWindow(this->currentWebView()));
     } else {
         if (!m_fullScreenWindow)
             return;
