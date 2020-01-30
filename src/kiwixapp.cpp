@@ -1,4 +1,5 @@
 #include "kiwixapp.h"
+#include "static_content.h"
 #include "zim/error.h"
 
 #include <QLocale>
@@ -42,6 +43,8 @@ KiwixApp::KiwixApp(int& argc, char *argv[])
 
     m_appTranslator.load(QLocale(), "kiwix-desktop", "_", ":/i18n/");
     installTranslator(&m_appTranslator);
+
+    initStaticContent();
 
     auto icon = QIcon();
     icon.addFile(":/icons/kiwix-app-icons-square.svg");

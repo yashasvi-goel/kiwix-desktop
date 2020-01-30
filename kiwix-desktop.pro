@@ -69,7 +69,8 @@ SOURCES += \
     src/opdsrequestmanager.cpp \
     src/localkiwixserver.cpp \
     src/fullscreenwindow.cpp \
-    src/fullscreennotification.cpp
+    src/fullscreennotification.cpp \
+    src/static_content.cpp
 
 HEADERS += \
     src/mainwindow.h \
@@ -97,6 +98,7 @@ HEADERS += \
     src/localkiwixserver.h \
     src/fullscreenwindow.h \
     src/fullscreennotification.h \
+    src/static_content.h \
     src/menuproxystyle.h
 
 FORMS += \
