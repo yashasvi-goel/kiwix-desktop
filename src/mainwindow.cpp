@@ -8,7 +8,7 @@
 
 #include <QWebEngineProfile>
 #include <QDesktopServices>
-#include <QWindowsWindowFunctions>
+#include <QtPlatformHeaders/QWindowsWindowFunctions>
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
