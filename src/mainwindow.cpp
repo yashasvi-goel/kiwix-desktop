@@ -8,6 +8,7 @@
 
 #include <QWebEngineProfile>
 #include <QDesktopServices>
+#include <QWindowsWindowFunctions>
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -39,6 +40,13 @@ MainWindow::MainWindow(QWidget *parent) :
 #if !SYSTEMTITLEBAR
     setWindowFlags(Qt::Window | Qt::CustomizeWindowHint);
 #endif
+#ifdef Q_OS_WIN
+    QWindow *window = windowHandle();
+    if (!window) {
+        return;
+    }
+    QWindowsWindowFunctions::setHasBorderInFullScreen(window, true);
+    #endif
 }
 
 MainWindow::~MainWindow()
@@ -71,4 +79,19 @@ QStackedWidget *MainWindow::getSideDockWidget()
 ContentManagerSide *MainWindow::getSideContentManager()
 {
     return mp_ui->contentmanagerside;
+}
+
+bool MainWindow::event(QEvent *event)
+{
+    qInfo() << event;
+    // #ifdef Q_OS_WIN
+    // if (event->type() == QEvent::WinIdChange) {
+    //     QWindow *window = windowHandle();
+    //     if (!window) {
+    //         return;
+    //     }
+    //     QWindowsWindowFunctions::setHasBorderInFullScreen(window, true);
+    // }
+    // #endif
+    return QMainWindow::event(event);
 }

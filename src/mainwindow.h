@@ -28,6 +28,9 @@ public:
     QStackedWidget* getSideDockWidget();
     ContentManagerSide* getSideContentManager();
 
+protected:
+    bool event(QEvent *event);
+
 protected slots:
     void toggleFullScreen();
 
